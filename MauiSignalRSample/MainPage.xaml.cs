@@ -1,24 +1,36 @@
-﻿namespace MauiSignalRSample;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+
+namespace MauiSignalRSample;
 
 public partial class MainPage : ContentPage
 {
-	int count = 0;
+	private readonly HubConnection _connection;
 
 	public MainPage()
 	{
 		InitializeComponent();
+
+		_connection = new HubConnectionBuilder()
+			.WithUrl("http://192.168.1.85:5296/chat")
+			.Build();
+
+		_connection.On<string>("MessageReceived", (message) =>
+		{
+			chatMessages.Text += $"{Environment.NewLine}{message}";
+		});
+
+		Task.Run(() =>
+		{
+			Dispatcher.Dispatch(async () =>
+			await _connection.StartAsync());
+		});
 	}
 
-	private void OnCounterClicked(object sender, EventArgs e)
+	private async void OnCounterClicked(object sender, EventArgs e)
 	{
-		count++;
+		await _connection.InvokeCoreAsync("SendMessage", args: new[] { myChatMessage.Text });
 
-		if (count == 1)
-			CounterBtn.Text = $"Clicked {count} time";
-		else
-			CounterBtn.Text = $"Clicked {count} times";
-
-		SemanticScreenReader.Announce(CounterBtn.Text);
+		myChatMessage.Text = String.Empty;
 	}
 }
 
